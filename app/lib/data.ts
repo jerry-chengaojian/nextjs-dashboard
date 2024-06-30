@@ -12,7 +12,10 @@ import {prisma} from "@/prisma/client";
 
 export async function fetchRevenue() {
   try {
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     const revenue = await prisma.revenue.findMany();
+    console.log('Data fetch completed after 3 seconds.');
     return revenue
   } catch (error) {
     console.error('Database Error:', error);
@@ -22,6 +25,9 @@ export async function fetchRevenue() {
 
 export async function fetchLatestInvoices() {
   try {
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log('Data fetch completed after 3 seconds.');
     const latestInvoices = await prisma.invoice.findMany({
       include: {
         customer: true, // 包含关联的客户信息
