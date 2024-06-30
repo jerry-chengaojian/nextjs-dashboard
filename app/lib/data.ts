@@ -8,20 +8,12 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
+import {prisma} from "@/prisma/client";
 
 export async function fetchRevenue() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const data = await sql<Revenue>`SELECT * FROM revenue`;
-
-    // console.log('Data fetch completed after 3 seconds.');
-
-    return data.rows;
+    const revenue = await prisma.revenue.findMany();
+    return revenue
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch revenue data.');
@@ -30,18 +22,21 @@ export async function fetchRevenue() {
 
 export async function fetchLatestInvoices() {
   try {
-    const data = await sql<LatestInvoiceRaw>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
-      LIMIT 5`;
-
-    const latestInvoices = data.rows.map((invoice) => ({
+    const latestInvoices = await prisma.invoice.findMany({
+      include: {
+        customer: true, // 包含关联的客户信息
+      },
+      orderBy: {
+        date: 'desc', // 按日期降序排序
+      },
+      take: 5, // 只取最新的5条记录
+    });
+    const formattedInvoices = latestInvoices.map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
+      image_url: invoice.customer.imageUrl
     }));
-    return latestInvoices;
+    return formattedInvoices;
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch the latest invoices.');
@@ -50,30 +45,48 @@ export async function fetchLatestInvoices() {
 
 export async function fetchCardData() {
   try {
-    // You can probably combine these into a single SQL query
-    // However, we are intentionally splitting them to demonstrate
-    // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
-    const invoiceStatusPromise = sql`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
+    // 使用 Prisma 查询发票和客户的数量
+    const invoiceCount = await prisma.invoice.count();
+    const customerCount = await prisma.customer.count();
 
-    const data = await Promise.all([
-      invoiceCountPromise,
-      customerCountPromise,
-      invoiceStatusPromise,
-    ]);
+    // 使用 Prisma 查询发票的支付和待处理状态
+    // const invoiceStatusTotals = await prisma.invoice.aggregate({
+    //   _sum: {
+    //     amount: true,
+    //   },
+    //   _group: {
+    //     by: 'status',
+    //   },
+    // });
+    // console.log(invoiceStatusTotals)
 
-    const numberOfInvoices = Number(data[0].rows[0].count ?? '0');
-    const numberOfCustomers = Number(data[1].rows[0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2].rows[0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2].rows[0].pending ?? '0');
+    const invoiceStatusTotals = await prisma.invoice.groupBy({
+      by: ['status'],
+      _sum: {
+        amount: true,
+      },
+    })
+
+
+    let totalPaidInvoices = '0'; // 初始化为0
+    let totalPendingInvoices = '0'; // 初始化为0
+
+// 遍历数组，根据status为'paid'的记录累加amount
+    invoiceStatusTotals.forEach(item => {
+      const amount = item._sum.amount as number
+      if (item.status === 'paid') {
+        totalPaidInvoices = formatCurrency(amount);
+      } else {
+        totalPendingInvoices = formatCurrency(amount);
+      }
+    });
+
+    let invoiceStatus = {}
+    // 格式化金额并返回结果
 
     return {
-      numberOfCustomers,
-      numberOfInvoices,
+      numberOfCustomers: customerCount,
+      numberOfInvoices: invoiceCount,
       totalPaidInvoices,
       totalPendingInvoices,
     };
