@@ -40,7 +40,9 @@ export async function fetchLatestInvoices() {
     const formattedInvoices = latestInvoices.map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
-      image_url: invoice.customer.imageUrl
+      image_url: invoice.customer.imageUrl,
+      name: invoice.customer.name,
+      email: invoice.customer.email
     }));
     return formattedInvoices;
   } catch (error) {
