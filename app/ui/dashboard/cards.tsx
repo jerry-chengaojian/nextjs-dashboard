@@ -6,12 +6,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { lusitana } from '@/app/ui/fonts';
 import { fetchCardData } from '@/app/lib/data';
-const {
-  numberOfInvoices,
-  numberOfCustomers,
-  totalPaidInvoices,
-  totalPendingInvoices,
-} = await fetchCardData();
+
 
 const iconMap = {
   collected: BanknotesIcon,
@@ -21,6 +16,13 @@ const iconMap = {
 };
 
 export default async function CardWrapper() {
+    const {
+        numberOfInvoices,
+        numberOfCustomers,
+        totalPaidInvoices,
+        totalPendingInvoices,
+    } = await fetchCardData();
+
     await new Promise((resolve) => setTimeout(resolve, 2000));
   return (
     <>

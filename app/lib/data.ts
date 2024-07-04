@@ -175,23 +175,20 @@ export async function fetchInvoicesPages(query: string) {
 
 export async function fetchInvoiceById(id: string) {
   try {
-    const data = await sql<InvoiceForm>`
-      SELECT
-        invoices.id,
-        invoices.customer_id,
-        invoices.amount,
-        invoices.status
-      FROM invoices
-      WHERE invoices.id = ${id};
-    `;
-
-    const invoice = data.rows.map((invoice) => ({
-      ...invoice,
-      // Convert amount from cents to dollars
-      amount: invoice.amount / 100,
-    }));
-
-    return invoice[0];
+    const invoice = await prisma.invoice.findUnique({
+      where: {
+        id: id,
+      },
+      // 使用 include 选项来包含关联的 Customer 数据
+      include: {
+        customer: true,
+      },
+    });
+    // id: string;
+    // customer_id: string;
+    // amount: number;
+    // status: 'pending' | 'paid';
+    return {id: invoice!.id, amount: invoice!.amount / 100, status: (invoice!.status as 'pending' | 'paid'), customer_id: invoice!.customer.id} as {id: string; customer_id: string; amount: number; status: 'pending' | 'paid'};
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoice.');
@@ -200,15 +197,15 @@ export async function fetchInvoiceById(id: string) {
 
 export async function fetchCustomers() {
   try {
-    const data = await sql<CustomerField>`
-      SELECT
-        id,
-        name
-      FROM customers
-      ORDER BY name ASC
-    `;
-
-    const customers = data.rows;
+    const customers = await prisma.customer.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
     return customers;
   } catch (err) {
     console.error('Database Error:', err);
