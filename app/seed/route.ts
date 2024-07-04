@@ -50,9 +50,11 @@ async function seedRevenue() {
 
 export async function GET() {
   try {
-    await seedUsers();
+    // await seedUsers();
     // await seedCustomers();
-    // await seedInvoices();
+    for (let i = 0; i < 1000; i++) {
+      await seedInvoices();
+    }
     // await seedRevenue();
     const data = await prisma.customer.findMany({
       include: {
