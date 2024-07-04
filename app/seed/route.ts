@@ -49,29 +49,9 @@ async function seedRevenue() {
 }
 
 export async function GET() {
-  try {
-    // await seedUsers();
-    // await seedCustomers();
-    for (let i = 0; i < 1000; i++) {
-      await seedInvoices();
-    }
-    // await seedRevenue();
-    const data = await prisma.customer.findMany({
-      include: {
-        invoices: true,
-      },
-    })
-
-    const invoices = await prisma.invoice.findMany({
-      where: {
-        amount: 666,
-      },
-      include: {
-        customer: true,
-      },
-    });
-
-    return Response.json({ message: 'Database seeded successfully', data, invoices });
+  try{
+    // this will return the data as JSON
+    return Response.json({  revenueData, invoices, customers, users});
   } catch (error) {
     return Response.json({ error }, { status: 500 });
   }
