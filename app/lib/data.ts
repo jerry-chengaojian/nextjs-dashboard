@@ -184,6 +184,7 @@ export async function fetchInvoiceById(id: string) {
         customer: true,
       },
     });
+    if (!invoice) return null
     // id: string;
     // customer_id: string;
     // amount: number;
